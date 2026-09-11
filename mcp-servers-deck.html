@@ -598,8 +598,9 @@ body.jump-on .jump{ display:block; }
 body.no-rail .rail{ display:none; }
 
 body.present .topbar,
-body.present .trace,
-body.present .rail{ display:none; }
+body.present .trace{ display:none; }
+/* the sidebar in presentation mode follows your B preference, not the mode */
+body.present .rail{ top:16px; max-height:calc(100vh - 88px); padding-top:8px; }
 body.present .deck{ padding-bottom:78px; }
 body.present .slide{ max-width:1240px; padding-block:30px 0; }
 body.present .footnav{
@@ -610,7 +611,10 @@ body.present .footnav:focus-within{ opacity:1; }
 body.present .footnav .hint{ display:none; }
 body.present .footnav .counter{ margin-right:auto; }
 .pres-only{ display:none; }
-body.present .pres-only{ display:inline; }
+body.present .pres-only{ display:inline-flex; align-items:center; }
+body.present .footnav .chip{ padding:4px 9px; font-size:12px; line-height:1; }
+/* in the notes view the stage is gone, so the sidebar toggle has nothing to do */
+body.present.notes-on .footnav [data-act="rail"]{ display:none; }
 
 .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 </style>
@@ -628,10 +632,10 @@ img{max-width:100%}
     <em>MCP: Review and Opportunities</em>
   </div>
   <button class="chip" id="btn-present" title="Presentation mode — full screen, no chrome (P)">present</button>
-  <button class="chip" id="btn-rail" aria-pressed="true" title="Show or hide the contents sidebar (B)">sidebar</button>
+  <button class="chip" id="btn-rail" data-act="rail" aria-pressed="true" title="Show or hide the contents sidebar (B)">sidebar</button>
   <button class="chip" id="btn-notes" aria-pressed="false" title="Presenter notes (N)">notes</button>
   <button class="chip" id="btn-jump" title="Jump to slide (O)">contents</button>
-  <button class="chip" id="btn-theme" title="Light / dark">◐</button>
+  <button class="chip" id="btn-theme" data-act="theme" title="Light / dark">◐</button>
   <span class="counter"><b id="cur">01</b>&thinsp;/&thinsp;<span id="tot">12</span></span>
 </div>
 <div class="trace"><i id="trace"></i></div>
@@ -668,6 +672,7 @@ img{max-width:100%}
       <span><kbd>O</kbd> contents</span>
       <span><kbd>N</kbd> presenter notes</span>
       <span><kbd>B</kbd> hide sidebar</span>
+      <span><kbd>D</kbd> light / dark</span>
     </p>
 
     <div class="notes"><h4>Presenter note</h4><p><b>The point:</b> define the term, set the frame, and get off this slide.</p><p><b>Say:</b> “MCP is a standard way to let an AI assistant actually use our systems — USB-C for AI apps: one connector instead of a different adapter for every pair.”</p><p><b>Then:</b> six parts, about thirty minutes, and <strong>no ask at the end</strong>. Say that last part out loud — people listen differently when they are not bracing for a request.</p></div>
@@ -2710,8 +2715,10 @@ echo <span class="s">'{"jsonrpc":"2.0","id":1,</span>
 <div id="speaker" aria-live="polite"></div>
 
 <div class="footnav">
-  <span class="hint"><kbd>←</kbd> <kbd>→</kbd> move &nbsp;·&nbsp; <kbd>P</kbd> present &nbsp;·&nbsp; <kbd>B</kbd> sidebar &nbsp;·&nbsp; <kbd>N</kbd> notes &nbsp;·&nbsp; <kbd>O</kbd> contents</span>
+  <span class="hint"><kbd>←</kbd> <kbd>→</kbd> move &nbsp;·&nbsp; <kbd>P</kbd> present &nbsp;·&nbsp; <kbd>B</kbd> sidebar &nbsp;·&nbsp; <kbd>D</kbd> theme &nbsp;·&nbsp; <kbd>N</kbd> notes &nbsp;·&nbsp; <kbd>O</kbd> contents</span>
   <span class="counter pres-only" id="cur2">01 / 19</span>
+  <button class="chip pres-only" data-act="rail" aria-pressed="true" title="Show or hide the contents sidebar (B)">◧</button>
+  <button class="chip pres-only" data-act="theme" title="Light / dark">◐</button>
   <button class="btn ghost" id="prev">◂ Back</button>
   <button class="btn" id="next">Next ▸</button>
 </div>
@@ -2864,15 +2871,20 @@ echo <span class="s">'{"jsonrpc":"2.0","id":1,</span>
   $("#btn-jump").addEventListener("click", openJump);
   $("#jump-close").addEventListener("click", closeJump);
 
-  /* ---------------- sidebar toggle ---------------- */
-  var railBtn = $("#btn-rail");
+  /* ---------------- sidebar toggle ----------------
+     Two sets of controls — the top bar, and the footer pair that only shows in
+     presentation mode. Both drive the same state. */
   function setRail(show){
     document.body.classList.toggle("no-rail", !show);
-    railBtn.setAttribute("aria-pressed", show ? "true" : "false");
+    $$('[data-act="rail"]').forEach(function(b){
+      b.setAttribute("aria-pressed", show ? "true" : "false");
+    });
     try { localStorage.setItem("mcp-deck-rail", show ? "1" : "0"); } catch(err){}
   }
-  railBtn.addEventListener("click", function(){
-    setRail(document.body.classList.contains("no-rail"));
+  $$('[data-act="rail"]').forEach(function(b){
+    b.addEventListener("click", function(){
+      setRail(document.body.classList.contains("no-rail"));
+    });
   });
   try {
     setRail(localStorage.getItem("mcp-deck-rail") !== "0");
@@ -2915,6 +2927,7 @@ echo <span class="s">'{"jsonrpc":"2.0","id":1,</span>
     else if (e.key === "o" || e.key === "O"){ document.body.classList.toggle("jump-on"); }
     else if (e.key === "p" || e.key === "P"){ present(!presenting()); }
     else if (e.key === "b" || e.key === "B"){ setRail(document.body.classList.contains("no-rail")); }
+    else if (e.key === "d" || e.key === "D"){ flipTheme(); }
     else if (e.key === "f" || e.key === "F"){
       if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
@@ -2954,7 +2967,7 @@ echo <span class="s">'{"jsonrpc":"2.0","id":1,</span>
 
   /* ---------------- theme ---------------- */
   var root = document.documentElement;
-  $("#btn-theme").addEventListener("click", function(){
+  function flipTheme(){
     var cur = root.getAttribute("data-theme");
     var sysLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
     var next;
@@ -2963,6 +2976,9 @@ echo <span class="s">'{"jsonrpc":"2.0","id":1,</span>
     else next = sysLight ? "dark" : "light";
     root.setAttribute("data-theme", next);
     try { localStorage.setItem("mcp-deck-theme", next); } catch(err){}
+  }
+  $$('[data-act="theme"]').forEach(function(b){
+    b.addEventListener("click", flipTheme);
   });
   try {
     var saved = localStorage.getItem("mcp-deck-theme");
