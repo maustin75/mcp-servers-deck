@@ -7,6 +7,15 @@ Written for an audience of portfolio architects.
 **[`mcp-servers-deck.html`](mcp-servers-deck.html)** — one file, no build step, no
 dependencies. Download it and open it in a browser.
 
+Want it as a download? **[`mcp-servers-deck.html.zip`](mcp-servers-deck.html.zip)** is
+the same deck, zipped. GitHub displays `.html` as source rather than rendering it, so
+the zip is the quicker route to a copy you can actually open. The `.html` is the source
+of truth — the zip is generated from it, so regenerate it after any edit:
+
+```sh
+zip mcp-servers-deck.html.zip mcp-servers-deck.html
+```
+
 ## What's in it
 
 Nineteen slides in six parts, about thirty minutes:
